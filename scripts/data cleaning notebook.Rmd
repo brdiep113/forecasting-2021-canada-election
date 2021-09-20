@@ -1,0 +1,52 @@
+---
+title: "data cleaning notebook"
+author: "Eric Zhu"
+date: "16/09/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Installing cesR
+
+```{r }
+devtools::install_github("hodgettsp/cesR")
+install.packages("labelled")
+```
+# Load libraries
+
+```{r}
+library(haven)
+library(tidyverse)
+library(plyr)
+library(cesR)
+library(labelled)
+```
+
+
+# Join the data for the data matrix 
+
+```{r}
+# load the datasets 
+cesr_data <- read.csv(file='ces2019_web.csv')
+eth_df <- read.csv(file = 'cesr_ethnicity_2.csv') %>% drop_na() %>% select(-c(X))
+property_df <- read.csv(file = 'cesr_property.csv') %>% drop_na()  %>% select(-c(X))
+income_df <- read.csv(file = 'income_cat.csv') %>% drop_na()
+edu_born_df <- read.csv(file = 'edu_bornin_1.csv') %>% drop_na()
+lang_home_df <- read.csv(file = 'lang_athome.csv') %>% mutate(Language = as.factor(Language)) %>% drop_na()
+vote_df <- read.csv(file='votechoice.csv') %>% drop_na()
+```
+
+# process voting choices
+
+```{r}
+prevote_voting_data <- cesr_data %>% select(c(cps19_ResponseId, starts_with("cps19_vote"))) %>% select(-c(ends_with("2015"), ends_with("TEXT")))
+postvote_voting_data <- cesr_data %>% select(c(cps19_ResponseId, starts_with("pes19_vote"))) %>% select(-c(ends_with("reason"), ends_with("TEXT")))
+```
+
+```{r}
+predictors_df <- eth_df %>% inner_join(property_df, by="cps19_ResponseId")%>%inner_join(income_df, by ="cps19_ResponseId")%>%inner_join(edu_born_df, by="cps19_ResponseId")%>%inner_join(lang_home_df, by="cps19_ResponseId") %>% select(-c(ends_with("TEXT"))) %>% inner_join(vote_df, by ="cps19_ResponseId")
+write.csv(predictors_df, "predictors_dataframe.csv")
+```

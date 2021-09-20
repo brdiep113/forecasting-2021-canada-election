@@ -1,0 +1,36 @@
+---
+title: "Modelling"
+author: "Eric Zhu, Brian Diep, Tanvir Hyder, Ashley Zhang, Kristin Huang"
+date: "09/19/2021"
+output:
+  pdf_document: 
+    toc: yes
+    toc_depth: 3
+    extra_dependencies: ["float"]
+header-includes:
+- \usepackage{fancyhdr}
+- \usepackage[T1]{fontenc}
+- \usepackage{lmodern}
+- \usepackage{bm}
+- \usepackage[ruled,vlined]{algorithm2e}
+- \usepackage{setspace}
+- \usepackage{fancyhdr}
+- \pagestyle{fancy}
+- \usepackage{float}
+- \floatplacement{figure}{H}
+- \fancyhead[LO,LE]{Eric Zhu, Brian Diep, Tanvir Hyder, Ashley Zhang, Kristin Huang}
+---
+
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(brms)
+```
+
+
+```{r}
+model1 <- brm(formula = votechoice ~ Language + education + cps19_bornin_canada + cps19_income_cat, data = predictors_df, family='categorical', cores=4,chains=4, backend = "cmdstanr", threads = threading(4))
+```
+
