@@ -1,0 +1,110 @@
+---
+title: "election"
+output: pdf_document
+---
+
+```{r, message=FALSE}
+# install cesR package
+#devtools::install_github("hodgettsp/cesR")
+
+# load cesR package and labelled package
+library(cesR)
+library(labelled)
+library(dplyr)
+library(tidyverse)
+library(readr)
+
+ces2019_web <- read.csv("ces2019_web.csv")
+```
+
+```{r}
+#Education and Born in canada
+edu_bornin <- ces2019_web[c("cps19_ResponseId", "cps19_education", "cps19_bornin_canada")]
+edu_bornin <- edu_bornin %>%
+  mutate(education = case_when(
+    between(cps19_education, 1, 4)~ "No degree/ diploma",
+    cps19_education == 5 ~ "High school",
+    between(cps19_education, 6, 7)~ "College/Trades",
+    between(cps19_education, 8, 9)~ "Bachelors",
+    between(cps19_education, 10, 11)~ "Postgrad"
+  )) %>%
+  filter(edu_bornin$cps19_bornin_canada != 3)
+#write.csv(edu_bornin,"edu_bornin.csv", row.names = FALSE)
+```
+
+```{r}
+#language spoken at home 
+lang_athome <- ces2019_web[c("cps19_ResponseId", "pes19_lang")]
+lang_athome <- na.omit(lang_athome)
+
+lang_athome<- lang_athome %>%
+  mutate(case_when(
+    pes19_lang == 68 ~ "English",
+    pes19_lang == 69 ~ "French"
+  ))
+
+lang_athome[is.na(lang_athome)] = "Other"
+
+lang_athome <- lang_athome %>%
+  mutate(`case_when(pes19_lang == 68 ~ "English", pes19_lang == 69 ~ "French")` = factor(`case_when(pes19_lang == 68 ~ "English", pes19_lang == 69 ~ "French")`, levels = c("English", "French", "Other")))
+colnames(lang_athome)[3] <- "Language"
+#write.csv(lang_athome,"lang_athome.csv", row.names = FALSE)
+```
+
+
+```{r}
+#votechoice 
+vote <- ces2019_web[c("cps19_ResponseId", "cps19_votechoice", "cps19_votechoice_pr", "pes19_votechoice2019", "cps19_vote_unlikely", "cps19_vote_unlike_pr", "cps19_vote_lean", "cps19_vote_lean_pr")]
+vote <- vote %>%
+  mutate(votechoice = coalesce(pes19_votechoice2019, cps19_votechoice, cps19_votechoice_pr, cps19_vote_unlikely, cps19_vote_unlike_pr, cps19_vote_lean, cps19_vote_lean_pr)) %>%
+  filter(!is.na(votechoice))
+
+#sum(is.na(vote$votechoice))
+
+prevote_voting_data <- ces2019_web %>% select(c(cps19_ResponseId, starts_with("cps19_vote"))) %>% select(-c(ends_with("2015"), ends_with("TEXT")))
+postvote_voting_data <- ces2019_web %>% select(c(cps19_ResponseId, starts_with("pes19_vote"))) %>% select(-c(ends_with("reason"), ends_with("TEXT")))
+
+votechoice <- vote[c("cps19_ResponseId", "votechoice")]
+#write.csv(votechoice,"votechoice.csv", row.names = FALSE)
+```
+
+```{r}
+#income category
+income <- ces2019_web[c("cps19_ResponseId", "cps19_income_number", "cps19_income_cat")]
+income <- income %>%
+  mutate(inc_cat = case_when(
+    cps19_income_number == 0 ~ 1,
+    between(cps19_income_number, 1, 30000)~ 2,
+    between(cps19_income_number, 30001, 60000)~ 3,
+    between(cps19_income_number, 60001, 90000)~ 4,
+    between(cps19_income_number, 90001, 110000)~ 5,
+    between(cps19_income_number, 110001, 150000)~ 6,
+    between(cps19_income_number, 150001, 200000)~ 7,
+    cps19_income_number > 200000 ~ 8,
+    cps19_income_cat == 1 ~ 1,
+    cps19_income_cat == 2 ~ 2,
+    cps19_income_cat == 3 ~ 3,
+    cps19_income_cat == 4 ~ 4,
+    cps19_income_cat == 5 ~ 5,
+    cps19_income_cat == 6 ~ 6,
+    cps19_income_cat == 7 ~ 7,
+    cps19_income_cat == 8 ~ 8,
+    cps19_income_cat == 9 ~ 9))
+
+#census data categories 
+income <- income %>%
+  mutate(income_cat = case_when(
+    between(inc_cat, 1, 2)~ "0-30k",
+    inc_cat == 3 ~ "30-60k",
+    inc_cat == 4 ~ "60-90k",
+    between(inc_cat, 5, 6)~  "90k-150k",
+    inc_cat == 7 ~ "150k-200k",
+    inc_cat == 8 ~ "200k+")) %>%
+  filter(!is.na(income_cat))
+
+income_final <- income[c("cps19_ResponseId", "income_cat")]
+#write.csv(income_final,"income_cat.csv", row.names = FALSE)
+```
+
+
+
