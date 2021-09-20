@@ -31,6 +31,21 @@ library(brms)
 
 
 ```{r}
-model1 <- brm(formula = votechoice ~ Language + education + cps19_bornin_canada + cps19_income_cat, data = predictors_df, family='categorical', cores=4,chains=4, backend = "cmdstanr", threads = threading(4))
+model <- brm(formula = votechoice ~ education + cps19_income_cat + own_residence + language + ethnicity + cps19_bornin_canada + (1| language) + (1 | cps19_income_cat) + (1 + cps19_income_cat + own_residence + language | ethnicity), 
+              data = predictors_df, 
+              family='categorical', 
+              file = "../outputs/model/model_state",
+              cores=4,
+              chains=4, 
+              backend = "cmdstanr", 
+              threads = threading(4))
+```
+
+
+```{r}
+summary(model1)
+loo_vals <- loo(model1)
+plot(loo_vals)
+plot(model1)
 ```
 
