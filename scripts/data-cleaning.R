@@ -25,6 +25,13 @@ riding_female <- riding %>%
     colnames(riding)[14]
   )
 
+riding_total <- riding %>%
+  select(
+    GEO_NAME,
+    colnames(riding)[10],
+    colnames(riding)[12]
+  )
+
 names(riding_male)[1] <- 'Riding'
 names(riding_male)[2] <- 'Code'
 names(riding_male)[3] <- 'Val'
@@ -32,6 +39,14 @@ names(riding_male)[3] <- 'Val'
 names(riding_female)[1] <- 'Riding'
 names(riding_female)[2] <- 'Code'
 names(riding_female)[3] <- 'Val'
+
+names(riding_total)[1] <- 'Riding'
+names(riding_total)[2] <- 'Code'
+names(riding_total)[3] <- 'Val'
+
+
+riding_total <- riding_total %>%
+  pivot_wider(names_from= Code, values_from = Val)
 
 riding_male <- riding_male %>%
   pivot_wider(names_from = Code, values_from = Val)
@@ -43,18 +58,17 @@ riding_male$sex <- c('male')
 riding_female$sex <- c('female')
 
 age_cols <- 9:33
-income_cols <- 760:779
+income_cols <- 760:780
 home_ownership_cols <- 1618:1620
 language_cols <- 106:109
-education_cols <- 1684:1697
+education_cols <- 1685:1698
 ethnicity_cols <- 1325:1337
 home_cols <- 1676
 immigrants_cols <- 1141:1142
 sex <- 2249
-employment_cols <- 1867:1870
+employment_cols <- 1867:1869
 
-riding_male <- riding_male %>%
-  select(age_cols,
+prompt_subset <- prompt[c(age_cols,
          income_cols,
          home_ownership_cols,
          language_cols,
@@ -62,18 +76,144 @@ riding_male <- riding_male %>%
          home_cols,
          immigrants_cols,
          sex,
-         employment_cols)
+         employment_cols),]
 
-riding_female <- riding_female %>%
-  select(age_cols,
-         income_cols,
-         home_ownership_cols,
-         language_cols,
-         education_cols,
-         home_cols,
-         immigrants_cols,
-         sex,
-         employment_cols)
 
 riding_data <- rbind(riding_male, riding_female)
-'%ni%' <- Negate('%in%')
+
+riding_full_data <- riding_data %>%
+  select(1,
+         age_cols,
+         income_cols,
+         home_ownership_cols,
+         language_cols,
+         education_cols,
+         home_cols,
+         immigrants_cols,
+         sex,
+         employment_cols)
+
+riding_income_data <- riding_total %>%
+  select(1, income_cols) %>%
+  select(-c('759', '775'))
+
+riding_education_data <- riding_data %>%
+  select(1, education_cols, sex)
+
+riding_employment_data <- riding_data %>%
+  select(1, employment_cols, sex)
+
+riding_immigration_data <- riding_data %>%
+  select(1, 1142, 1143, sex)
+
+names(riding_income_data) <- c("Riding", deframe(prompt[760:774,]), 
+                               deframe(prompt[776:779,]))
+riding_income_data <- riding_income_data %>%
+  mutate(
+  "0-30k" = rowSums(.[2:7]),
+  "30-60k" = rowSums(.[8:12]),
+  "60-90k" = rowSums(.[13:15]),
+  "90-150k" = rowSums(.[16:18]),
+  "150-200k" = rowSums(.[19]),
+  "200k+" = rowSums(.[20])
+  ) %>% 
+  select(-c(2:20))
+
+names(riding_education_data) <- c("Riding", deframe(prompt[education_cols,]), "Sex")
+riding_education_data[, c(2:15)] <- sapply(riding_education_data[, c(2:15)], as.numeric)
+riding_education_data <- riding_education_data %>%
+  mutate(
+    "No degree/diploma" = rowSums(.[2]),
+    "High school" = rowSums(.[3]),
+    "College/Trades" = rowSums(.[c(4:9)]),
+    "Bachelors" = rowSums(.[10:11]),
+    "Postgrad" = rowSums(.[12:15])
+  ) %>%
+  select(-c(2:15))
+
+names(riding_employment_data) <- c("Riding", deframe(prompt[employment_cols,]), "Sex")
+riding_employment_data[, c(2:4)] <- sapply(riding_employment_data[, c(2:4)], as.numeric)
+
+names(riding_immigration_data) <- c("Riding", "Non-immigrant", "Immigrant", "Sex")
+riding_immigration_data[, c(2:3)] <- sapply(riding_immigration_data[, c(2:3)], as.numeric)
+
+immigration_prop <- riding_immigration_data %>% 
+  pivot_longer(cols=2:3, names_to="is_immigrant", values_to="n") %>%
+  group_by(Riding, Sex) %>%
+  mutate(freq = n / sum(n))
+
+employment_prop <- riding_employment_data %>%
+  pivot_longer(cols=2:4, names_to="employment_status", values_to="n") %>%
+  group_by(Riding, Sex) %>%
+  mutate(freq = n / sum(n))
+
+education_prop <- riding_education_data %>%
+  pivot_longer(cols=3:7, names_to="education", values_to="n") %>%
+  group_by(Riding, Sex) %>%
+  mutate(freq = n / sum(n))
+
+income_prop <- riding_income_data %>%
+  pivot_longer(cols=2:7, names_to="income_bracket", values_to="n") %>%
+  group_by(Riding) %>%
+  mutate(freq = n / sum(n))
+
+x <- merge(immigration_prop, employment_prop, by=c("Riding", "Sex")) %>%
+  rename(f1 = freq.x,
+         f2 = freq.y) %>%
+  select(-c(4, 7))
+
+y <- merge(x, education_prop, by=c("Riding", "Sex")) %>%
+  rename(
+    f3 = freq
+  ) %>%
+  select(-c(8))
+
+z <- merge(y, income_prop, by="Riding") %>%
+  rename(
+    f4 = freq
+  ) %>%
+  select(-c(10))
+
+z <- z %>%
+  mutate(prop = f1 * f2 * f3 * f4) %>%
+  select(-c(f1, f2, f3, f4))
+
+ages <- read_csv('scripts/Ages.csv')
+ages$Sex <- tolower(ages$Sex)
+ethnicity <- read_csv('scripts/Ethnicity.csv')
+ethnicity$Sex <- tolower(ethnicity$Sex)
+home <- read_csv('scripts/Homeownership.csv')
+language <- read_csv('scripts/Language .csv')
+language$Sex <- tolower(language$Sex)
+
+x <- merge(z, ages, by=c("Riding", "Sex")) %>%
+  rename(
+    f5 = freq
+  ) %>%
+  select(-c(8, 10)) %>%
+  mutate(prop = prop * f5) %>%
+  select(-c(f5))
+
+y <- merge(x, ethnicity, by=c("Riding", "Sex")) %>%
+  rename(
+    f6 = freq
+  ) %>%
+  select(-c(9, 11)) %>%
+  mutate(prop = prop * f6) %>%
+  select(-c(f6))
+  
+z <- merge(y, home, by="Riding") %>%
+  rename(
+    f7 = freq
+  ) %>%
+  select(-c(10, 12)) %>%
+  mutate(prop = prop * f7) %>%
+  select(-c(f7))
+
+x <- merge(z, language, by="Riding") %>%
+  rename(
+    f8 = freq
+  ) %>%
+  select(-c(11, 13)) %>%
+  mutate(prop = prop * f8) %>%
+  select(-c(f8))
