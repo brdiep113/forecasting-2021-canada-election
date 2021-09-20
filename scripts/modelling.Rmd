@@ -21,31 +21,37 @@ header-includes:
 - \fancyhead[LO,LE]{Eric Zhu, Brian Diep, Tanvir Hyder, Ashley Zhang, Kristin Huang}
 ---
 
-
 ```{r}
 library(tidyverse)
 library(ggplot2)
 library(dplyr)
 library(brms)
-```
+library(lme4)
 
+predictors_df <- read_csv("predictors_dataframe.csv")
+
+```
 
 ```{r}
-model <- brm(formula = votechoice ~ education + cps19_income_cat + own_residence + language + ethnicity + cps19_bornin_canada + (1| language) + (1 | cps19_income_cat) + (1 + cps19_income_cat + own_residence + language | ethnicity), 
-              data = predictors_df, 
-              family='categorical', 
-              file = "../outputs/model/model_state",
-              cores=4,
-              chains=4, 
-              backend = "cmdstanr", 
-              threads = threading(4))
+model <- nnet::multinom(votechoice ~ education + cps19_income_cat + own_residence + language + ethnicity + cps19_bornin_canada , data = predictors_df)
+broom::tidy(model)
+#summary(model)
 ```
-
 
 ```{r}
-summary(model1)
-loo_vals <- loo(model1)
-plot(loo_vals)
-plot(model1)
-```
+library(caret)
+predictors_df$votechoice <- as.factor(predictors_df$votechoice)
 
+pred <- predict(model)
+pred2 <- as.data.frame(pred) %>% 
+  mutate(actual = as.character(predictors_df$votechoice),
+         pred   = colnames(pred)[max.col(pred,ties.method="first")],
+         pred   = str_remove(pred,"P\\(Y = "),
+         pred   = str_remove(pred,"\\)"),
+         actual = factor(actual),
+         pred   = factor(pred))
+
+
+
+confusionMatrix(pred2$pred, pred2$actual)
+```
