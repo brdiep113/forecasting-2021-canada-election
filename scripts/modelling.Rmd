@@ -52,8 +52,15 @@ poststrat_data <- poststrat_data %>%
   select(-c(1))
 province_data <- read_csv('../wrangled_data/Riding_by_province.csv')
 province_data <- province_data %>%
-  select(-c(1,4))
-poststrat_data <- inner_join(poststrat_data, province_data, by=c("Riding"))
+  arrange(Riding) %>%
+  select(-c(1:2))
+province_data$custom_code <- 1:338
+Riding <- unique(poststrat_data$Riding)
+custom_code <- 1:338
+custom_code <- cbind(Riding, custom_code)
+
+poststrat_data <- merge(poststrat_data, custom_code, by=c("Riding"))
+poststrat_data <- merge(poststrat_data, province_data, by=c("custom_code"))
 predicted_vote <- predict(model, type="class", newdata=poststrat_data)
 pred <- data.frame(predicted_vote)
 poststrat_data <- cbind(poststrat_data, predicted_vote)
@@ -73,5 +80,6 @@ poststrat_data_j <- poststrat_data %>%
 # Check dataframe 
 ```{r}
 predicted_summaries <- poststrat_data_j %>% group_by(predicted_vote) %>% dplyr::summarise(n =n())
+setdiff(poststrat_data$custom_code, custom_code)
 
 ```
