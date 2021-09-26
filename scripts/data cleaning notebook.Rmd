@@ -18,11 +18,7 @@ install.packages("labelled")
 # Load libraries
 
 ```{r}
-library(haven)
 library(tidyverse)
-library(plyr)
-library(cesR)
-library(labelled)
 ```
 
 
@@ -30,13 +26,13 @@ library(labelled)
 
 ```{r}
 # load the datasets 
-cesr_data <- read.csv(file='ces2019_web.csv')
-eth_df <- read.csv(file = 'cesr_ethnicity.csv') %>% drop_na() %>% select(-c(X)) %>% mutate(ethnicity=as.factor(ethnicity))
-property_df <- read.csv(file = 'cesr_property.csv') %>% drop_na()  %>% select(-c(X)) %>% select(c(cps19_ResponseId, own_residence))
-income_df <- read.csv(file = 'income_cat.csv') %>% drop_na()
-edu_born_df <- read.csv(file = 'edu_bornin_1.csv') %>% drop_na()
-lang_home_df <- read.csv(file = 'lang_athome.csv') %>% mutate(language = as.factor(language)) %>% drop_na()
-vote_df <- read.csv(file='votechoice.csv') %>% drop_na()
+#cesr_data <- read.csv(file='ces2019_web.csv')
+eth_df <- read.csv(file = '../wrangled_data/cesr_ethnicity.csv') %>% drop_na() %>% select(-c(X)) %>% mutate(ethnicity=as.factor(ethnicity))
+property_df <- read.csv(file = '../wrangled_data/cesr_property.csv') %>% drop_na()  %>% select(-c(X)) %>% select(c(cps19_ResponseId, own_residence))
+income_df <- read.csv(file = '../wrangled_data/income_cat.csv') %>% drop_na()
+edu_born_df <- read.csv(file = '../wrangled_data/edu_bornin_1.csv') %>% drop_na()
+lang_home_df <- read.csv(file = '../wrangled_data/lang_athome.csv') %>% mutate(language = as.factor(language)) %>% drop_na()
+vote_df <- read.csv(file='../wrangled_data/votechoice.csv') %>% drop_na()
 ```
 
 
