@@ -53,5 +53,5 @@ pred2 <- as.data.frame(pred) %>%
 
 
 
-confusionMatrix(pred2$pred, pred2$actual)
+confusionMatrix(pred2$pred, pred2$p)
 ```

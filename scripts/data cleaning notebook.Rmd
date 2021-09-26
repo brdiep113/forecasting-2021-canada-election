@@ -21,6 +21,34 @@ install.packages("labelled")
 library(tidyverse)
 ```
 
+# Final cleaning for province and age
+
+```{r}
+province_age <- read.csv(file = '../wrangled_data/cesr_province_age.csv') %>%  mutate(age_bracket = case_when(
+    between(cps19_age, 0, 24) ~ "18-24",
+    between(cps19_age, 25, 34) ~ "25-34",
+    between(cps19_age, 35, 44) ~ "35-44",
+    between(cps19_age, 45, 54) ~ "45-54",
+    between(cps19_age, 55, 64) ~ "55-64",
+    between(cps19_age, 65, 74) ~ "65-74",
+    between(cps19_age, 75, Inf) ~ "75+")) %>% mutate(province = case_when(
+      cps19_province == 14 ~ "Alberta",
+      cps19_province == 15 ~ "British Columbia",
+      cps19_province == 16 ~ "Maintoba",
+      cps19_province == 17 ~ "New Brunswick",
+      cps19_province == 18 ~ "Newfoundland and Labrador",
+      cps19_province == 19 ~ "Northwest Territories",
+      cps19_province == 20 ~ "Nova Scoita",
+      cps19_province == 21 ~ "Nunavut",
+      cps19_province == 22 ~ "Ontario",
+      cps19_province == 23 ~ "Prince Edward Island",
+      cps19_province == 24 ~ "Quebec",
+      cps19_province == 25 ~ "Saskatchewan",
+      cps19_province == 26 ~ "Yukon",
+    )) %>% select(-c("cps19_age", "cps19_province", "X")) %>% mutate(province = as.factor(province)) %>% mutate(as.factor(age_bracket))
+
+```
+
 
 # Join the data for the data matrix 
 
@@ -37,6 +65,6 @@ vote_df <- read.csv(file='../wrangled_data/votechoice.csv') %>% drop_na()
 
 
 ```{r}
-predictors_df <- eth_df %>% inner_join(property_df, by="cps19_ResponseId")%>%inner_join(income_df, by ="cps19_ResponseId")%>%inner_join(edu_born_df, by="cps19_ResponseId")%>%inner_join(lang_home_df, by="cps19_ResponseId") %>% select(-c(ends_with("TEXT"))) %>% inner_join(vote_df, by ="cps19_ResponseId") %>% mutate(education = as.factor(education))
+predictors_df <- eth_df %>% inner_join(property_df, by="cps19_ResponseId")%>%inner_join(income_df, by ="cps19_ResponseId")%>%inner_join(edu_born_df, by="cps19_ResponseId")%>%inner_join(lang_home_df, by="cps19_ResponseId") %>% select(-c(ends_with("TEXT"))) %>% inner_join(vote_df, by ="cps19_ResponseId") %>% mutate(education = as.factor(education)) %>%inner_join(province_age, by="cps19_ResponseId")
 write.csv(predictors_df, "predictors_dataframe.csv")
 ```
