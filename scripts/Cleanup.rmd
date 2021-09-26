@@ -1,0 +1,326 @@
+---
+title: "Cleanup"
+output: html_document
+---
+
+```{r setup, include=TRUE}
+library(haven)
+library(tidyverse)
+
+# Read federal riding census data
+riding <- read_csv('98-401-X2016045_English_CSV_data.csv')
+
+# Filter off provincial/national aggregates
+riding <- riding %>%
+  subset(GEO_LEVEL == 2)
+```
+
+```{r setup1, include=TRUE}
+# Get human-readable names for columns
+prompt <- riding[1:2247,9]
+
+riding_male <- riding %>%
+  select(
+    GEO_NAME,
+    colnames(riding)[10],
+    colnames(riding)[13]
+    )
+
+riding_female <- riding %>%
+  select(
+    GEO_NAME,
+    colnames(riding)[10],
+    colnames(riding)[14]
+  )
+
+riding_overall <- riding %>%
+  select(
+    GEO_NAME,
+    colnames(riding)[10],
+    colnames(riding)[12]
+  )
+```
+
+```{r 3, include=TRUE}
+names(riding_male)[1] <- 'Riding'
+names(riding_male)[2] <- 'Code'
+names(riding_male)[3] <- 'Val'
+
+names(riding_female)[1] <- 'Riding'
+names(riding_female)[2] <- 'Code'
+names(riding_female)[3] <- 'Val'
+
+names(riding_overall)[1] <- 'Riding'
+names(riding_overall)[2] <- 'Code'
+names(riding_overall)[3] <- 'Val'
+
+riding_male <- riding_male %>%
+  pivot_wider(names_from = Code, values_from = Val)
+
+riding_female <- riding_female %>%
+  pivot_wider(names_from = Code, values_from = Val)
+
+riding_overall <- riding_overall %>%
+  pivot_wider(names_from = Code, values_from = Val)
+
+riding_male$sex <- c('male')
+riding_female$sex <- c('female')
+```
+
+```{r 4, include=TRUE}
+riding_name <- 1:1
+age_cols <- 9:33
+income_cols <- 760:779
+home_ownership_cols <- 1618:1620
+language_cols <- 101:111
+education_cols <- 1684:1697
+ethnicity_cols <- 1325:1410
+home_cols <- 1676
+immigrants_cols <- 1141:1142
+sex <- 2249
+employment_cols <- 1867:1870
+
+riding_male <- riding_male %>%
+  select(riding_name,
+         age_cols,
+         income_cols,
+         home_ownership_cols,
+         language_cols,
+         education_cols,
+         home_cols,
+         immigrants_cols,
+         sex,
+         employment_cols,
+         ethnicity_cols)
+
+riding_female <- riding_female %>%
+  select(riding_name,
+         age_cols,
+         income_cols,
+         home_ownership_cols,
+         language_cols,
+         education_cols,
+         home_cols,
+         immigrants_cols,
+         sex,
+         employment_cols,
+         ethnicity_cols)
+
+riding_overall <- riding_overall %>%
+  select(riding_name,
+         age_cols,
+         income_cols,
+         home_ownership_cols,
+         language_cols,
+         education_cols,
+         home_cols,
+         immigrants_cols,
+         employment_cols,
+         ethnicity_cols)
+
+riding_data <- rbind(riding_male, riding_female)
+'%ni%' <- Negate('%in%')
+```
+
+age_cols <- 8:32
+-------------------------------------------
+           colname
+15-24,   14, 15
+25-34,   16, 17
+35 - 44, 18, 19
+45 - 54, 20, 21
+55 - 64, 22, 23
+65 - 74, 25, 26
+75 - 84, 27, 28
+85+      29 
+
+```{r Age Categories, include=TRUE}
+# these are the column names NOT INDICES of corrsponding age brackets
+adj_col_names = c("14", "15", "16", "17", "18", "19", "20",
+                  "21", "22", "23", "25", "26", "27", "28",
+                  "29")
+
+# turning the necessary columns numeric 
+for (var in adj_col_names){
+  riding_data[[var]] = as.numeric(riding_data[[var]])
+}
+
+# dataset containing riding population by age category
+Age_Categories = riding_data %>% transmute(
+   "Age: 15-24" = rowSums(.[8:9]),
+   "Age: 25-34" = rowSums(.[10:11]),
+   "Age: 35-44" = rowSums(.[12:13]),
+   "Age: 45-54" = rowSums(.[14:15]),
+   "Age: 55-64" = rowSums(.[16:17]),
+   "Age: 65-74" = rowSums(.[19:20]),
+   "Age: 75-84" = rowSums(.[21:22]),
+   "Age: 85+"     = rowSums(.[23:23])
+)
+Age_Categories$Riding = riding_data$Riding
+
+
+# Sex Adjust
+cont = c()
+for (i in 1:nrow(Age_Categories)){
+  if (i <= 338){
+    cont = c(cont, "Male")
+  } else {
+    cont = c(cont, "Female")
+  }
+}
+cont = as.factor(cont)
+Age_Categories$Sex = cont
+
+# Making Riding first column
+Age_Categories = Age_Categories[,c(9,10,1,2,3,4,5,6,7,8)]
+
+
+
+# Pivor Wider
+age_prop <- Age_Categories %>%
+  pivot_longer(cols=3:10, names_to="Age Bracket", values_to="n") %>%
+  group_by(Riding, Sex) %>%
+  mutate(freq = n / sum(n))
+```
+
+```{r Home Ownership Categories, include=TRUE}
+# IMPORTANT: this variable is not differentiated into sexes
+# column names 1618, 1619 refers to Owners and Renters resp.
+home_ownership_categories = data.frame(
+  Riding = riding_overall$Riding,
+  Owner = as.numeric(riding_overall$`1618`),
+  Renter = as.numeric(riding_overall$`1619`)
+)
+
+# Pivor Wider
+home_ownership_prop <- home_ownership_categories %>%
+  pivot_longer(cols=2:3, names_to="Status", values_to="n") %>%
+  group_by(Riding) %>%
+  mutate(freq = n / sum(n))
+```
+
+
+Language Categories: Might need to adjust 
+
+-> Language category by knowledge: 100%
+English only: 101
+French only: 102
+English and French: 103
+Neither English nor French: 104
+
+-> Language category by first official spoken: 100%
+English: 106
+French: 107
+English and French: 108	
+Neither English nor French: 109	
+Official language minority (number): 110	
+
+```{r Language Categories, include=TRUE}
+language_categories = data.frame(
+  Riding = riding_data$Riding,
+  English = riding_data$`106`,
+  French = riding_data$`107`,
+  English_and_French = riding_data$`108`,
+  Neither = riding_data$`109`
+)
+
+for (var in colnames(language_categories)){
+  if (var != "Riding"){
+    language_categories[[var]] = as.numeric(language_categories[[var]])
+  }
+}
+```
+
+```{r Language2, include=TRUE}
+library(dplyr)
+# Sex Adjust
+cont = c()
+for (i in 1:nrow(language_categories)){
+  if (i <= nrow(language_categories)/2){
+    cont = c(cont, "Male")
+  } else {
+    cont = c(cont, "Female")
+  }
+}
+cont = as.factor(cont)
+language_categories$Sex = cont
+
+# Making Riding first column
+language_categories = language_categories[,c(1,6,2,3,4,5)]
+
+# Pivor Wider
+language_prop <- language_categories %>%
+  pivot_longer(cols=3:6, names_to="Official Language Spoken", values_to="n") %>%
+  group_by(Riding, Sex) %>%
+  mutate(freq = n / sum(n))
+```
+
+Canadian -> 1346
+English -> 1357
+Scottish -> 1360
+French -> 1367
+Irish -> 1358
+German -> 1375
+Chinese -> 1326
+Italian -> 1409
+First Nations -> 1340 
+Indian -> 1325
+
+```{r Ethn Categories, include=TRUE}
+Ethnic_Categories = data.frame(
+  Riding = riding_data$Riding,
+  Canadian = riding_data$`1346`,
+  English = riding_data$`1357`,
+  Scottish = riding_data$`1360`,
+  French = riding_data$`1367`,
+  Irish = riding_data$`1358`
+)
+
+for (var in colnames(Ethnic_Categories)){
+  if (var != "Riding"){
+    Ethnic_Categories[[var]] = as.numeric(Ethnic_Categories[[var]])
+  }
+}
+```
+
+```{r Ethnic 2, include=TRUE}
+library(dplyr)
+# Sex Adjust
+cont = c()
+for (i in 1:nrow(Ethnic_Categories)){
+  if (i <= nrow(Ethnic_Categories)/2){
+    cont = c(cont, "Male")
+  } else {
+    cont = c(cont, "Female")
+  }
+}
+cont = as.factor(cont)
+Ethnic_Categories$Sex = cont
+
+# Making Riding first column
+Ethnic_Categories = Ethnic_Categories[,c(1,7,2,3,4,5,6)]
+
+# Pivor Wider
+Ethnic_prop <- Ethnic_Categories %>%
+  pivot_longer(cols=3:7, names_to="Ethnic Origins", values_to="n") %>%
+  group_by(Riding, Sex) %>%
+  mutate(freq = n / sum(n))
+```
+
+
+
+
+```{r Write to csv, include=TRUE}
+write.csv(Ethnic_prop,"Ethnicity.csv")
+write.csv(language_prop,"Language.csv")
+write.csv(home_ownership_prop,"Homeownership.csv")
+write.csv(age_prop,"Ages.csv")
+```
+
+
+
+
+
+
+
+
