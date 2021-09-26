@@ -59,27 +59,31 @@ Riding <- unique(poststrat_data$Riding)
 custom_code <- 1:338
 custom_code <- cbind(Riding, custom_code)
 
-poststrat_data <- merge(poststrat_data, custom_code, by=c("Riding"))
-poststrat_data <- merge(poststrat_data, province_data, by=c("custom_code"))
+poststrat_data <- inner_join(poststrat_data, custom_code, by=c("Riding"))
+poststrat_data <- inner_join(poststrat_data, province_data, by=c("custom_code"))
+num_ridings <- length(unique(poststrat_data$custom_code))
+```
+
+
+```{r}
 predicted_vote <- predict(model, type="class", newdata=poststrat_data)
 pred <- data.frame(predicted_vote)
 poststrat_data <- cbind(poststrat_data, predicted_vote)
 ```
 
-
 ```{r}
 
 poststrat_data_j <- poststrat_data %>%
-  select(c(Riding, prop, predicted_vote)) %>% 
-  group_by(Riding, predicted_vote) %>%
-  summarise_all(sum) %>% 
-  group_by(Riding) %>% 
-  top_n(n=1)
-
+  select(c(Riding, custom_code, prop, predicted_vote)) %>% 
+  group_by(Riding, custom_code, predicted_vote) %>%
+  summarise_all(sum)  %>% 
+  ungroup() %>% 
+  mutate(custom_code = as.numeric(custom_code)) %>% 
+  group_by(custom_code) %>% 
+  top_n(n=1, prop)
 ```
 # Check dataframe 
 ```{r}
 predicted_summaries <- poststrat_data_j %>% group_by(predicted_vote) %>% dplyr::summarise(n =n())
-setdiff(poststrat_data$custom_code, custom_code)
 
 ```
