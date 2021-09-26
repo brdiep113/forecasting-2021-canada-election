@@ -29,29 +29,34 @@ library(brms)
 library(lme4)
 
 predictors_df <- read_csv("predictors_dataframe.csv")
+predictors_df <- predictors_df %>%
+  select(-c(1:3, 6))
+names(predictors_df) <- c('home_ownership', 'income_bracket', 'is_immigrant',
+                          'education', 'language', 'votechoice', 'age_bracket',
+                          'province')
 
 ```
 
 ```{r}
-model <- nnet::multinom(votechoice ~ education + cps19_income_cat + own_residence + language + ethnicity + cps19_bornin_canada , data = predictors_df)
+model <- nnet::multinom(votechoice ~ education + income_bracket + home_ownership + language + is_immigrant + age_bracket, data = predictors_df, maxit=500)
 broom::tidy(model)
 #summary(model)
 ```
 
 ```{r}
 library(caret)
+
 predictors_df$votechoice <- as.factor(predictors_df$votechoice)
+poststrat_data <- read_csv('../poststrat.csv')
+poststrat_data <- poststrat_data %>%
+  select(-c(1))
+predicted_vote <- predict(model, type="class", newdata=poststrat_data)
+pred <- data.frame(predicted_vote)
+poststrat_data <- cbind(poststrat_data, predicted_vote)
 
-pred <- predict(model)
-pred2 <- as.data.frame(pred) %>% 
-  mutate(actual = as.character(predictors_df$votechoice),
-         pred   = colnames(pred)[max.col(pred,ties.method="first")],
-         pred   = str_remove(pred,"P\\(Y = "),
-         pred   = str_remove(pred,"\\)"),
-         actual = factor(actual),
-         pred   = factor(pred))
+poststrat_data_j <- poststrat_data %>%
+  group_by(Riding, predicted_vote) %>%
+  summarize(riding_vote_share = sum(prop))
 
 
-
-confusionMatrix(pred2$pred, pred2$p)
 ```

@@ -245,10 +245,6 @@ language_prop <- riding_language_data %>%
   mutate(freq = n / sum(n)) %>%
   select(-c(4))
 
-# Clean ethnicity
-riding_ethnicity_data <- riding_data %>%
-  select(1, ethnicity_cols)
-
 # Combine individual distributions
 
 x <- merge(income_prop, education_prop, by=c("Riding", "Sex")) %>%
