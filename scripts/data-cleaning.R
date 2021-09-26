@@ -245,6 +245,10 @@ language_prop <- riding_language_data %>%
   mutate(freq = n / sum(n)) %>%
   select(-c(4))
 
+# Clean ethnicity
+riding_ethnicity_data <- riding_data %>%
+  select(1, ethnicity_cols)
+
 # Combine individual distributions
 
 x <- merge(income_prop, education_prop, by=c("Riding", "Sex")) %>%
@@ -261,5 +265,14 @@ z <- merge(y, immigration_prop, by=c("Riding", "Sex")) %>%
 
 x <- merge(z, age_prop, by=c("Riding", "Sex")) %>%
   mutate(prop = prop * freq * 2) %>%
-  select(-c(f5))
+  select(-c(9))
 
+y <- merge(x, home_ownership_prop, by=c("Riding", "Sex")) %>%
+  mutate(prop = prop * freq * 2) %>%
+  select(-c(10))
+
+z <- merge(y, language_prop, by=c("Riding", "Sex")) %>%
+  mutate(prop = prop * freq * 2) %>%
+  select(-c(11))
+
+write.csv(z, 'poststrat.csv')
