@@ -8,7 +8,7 @@ library(haven)
 library(tidyverse)
 
 # Read federal riding census data
-riding <- read_csv('98-401-X2016045_English_CSV_data.csv')
+riding <- read_csv('C:/Users/ericz/Desktop/ML compeititons/forecasting-2021-canada-election/data/riding_data/98-401-X2016045_English_CSV_data.csv')
 
 # Filter off provincial/national aggregates
 riding <- riding %>%

@@ -53,10 +53,21 @@ poststrat_data <- poststrat_data %>%
 predicted_vote <- predict(model, type="class", newdata=poststrat_data)
 pred <- data.frame(predicted_vote)
 poststrat_data <- cbind(poststrat_data, predicted_vote)
+```
+
+
+```{r}
 
 poststrat_data_j <- poststrat_data %>%
+  select(c(Riding, prop, predicted_vote)) %>% 
   group_by(Riding, predicted_vote) %>%
-  summarize(riding_vote_share = sum(prop))
+  summarise_all(sum) %>% 
+  group_by(Riding) %>% 
+  top_n(n=1)
 
+```
+# Check dataframe 
+```{r}
+predicted_summaries <- poststrat_data_j %>% group_by(predicted_vote) %>% dplyr::summarise(n =n())
 
 ```
