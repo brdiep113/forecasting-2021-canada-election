@@ -80,10 +80,31 @@ poststrat_data_j <- poststrat_data %>%
   ungroup() %>% 
   mutate(custom_code = as.numeric(custom_code)) %>% 
   group_by(custom_code) %>% 
-  top_n(n=1, prop)
+  top_n(n=1, prop) %>% 
+  ungroup() %>%
+  slice(-c(70, 71, 72))
+
+
 ```
 # Check dataframe 
 ```{r}
 predicted_summaries <- poststrat_data_j %>% group_by(predicted_vote) %>% dplyr::summarise(n =n())
 
+```
+
+# Convert to submission format
+
+```{r}
+submission_df <- poststrat_data_j %>% left_join(province_data, by = "custom_code") %>% ungroup() %>%select(c(predicted_vote, "Geo Code")) 
+submission_df <- submission_df %>% mutate(forecast_winner = case_when(
+  predicted_vote == 1 ~ 'LPC',
+  predicted_vote == 2 ~ 'CPC',
+  predicted_vote == 3 ~ 'NDP',
+  predicted_vote == 4 ~ 'BQ',
+  predicted_vote == 5 ~ 'GPC',
+  predicted_vote == 6 ~ 'PPC',
+)) %>% 
+  select(-c(predicted_vote)) %>%
+  rename(riding_code = "Geo Code")
+write.csv(submission_df,  "can_election_21_forecast.csv")
 ```
